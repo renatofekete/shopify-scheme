@@ -1,0 +1,189 @@
+{{ 'custom.css' | asset_url | stylesheet_tag }}
+
+
+<show-on-scroll>
+  <custom-section>
+    <picture class="custom-section__picture">
+      <source media="(max-width: 375px)" srcset="{{section.settings.imageS | image_url}}" />
+      <source media="(min-width: 376px)" srcset="{{section.settings.imageL | image_url}}" />
+      <img src="{{section.settings.imageL | image_url}}" alt="Model in a dress with a bag." />
+    </picture>
+    <article class="custom-section__article">
+      <div class="custom-section__content">
+        <h1 class="custom-section__title active">
+          {{ section.settings.title }}
+        </h1>
+        <p class="custom-section__text active">
+          {{ section.settings.visibleText }}
+        </p>
+        <p class="custom-section__text hidden">
+          {{ section.settings.hiddenText }}
+        </p>
+        <button class="custom-section__button">Learn more</button>
+      </div>
+    </article>
+  </custom-section>
+</show-on-scroll>
+
+<script>
+    class ShowOnScroll extends HTMLElement {
+    constructor() {
+      super()
+      this.handleIntersection = this.handleIntersection.bind(this)
+      this.observer = null
+    }
+    
+    connectedCallback() {
+      const shadow = this.attachShadow({ mode: 'open' })
+    
+      const container = document.createElement('div')
+    
+      container.classList.add('intersection')
+    
+      const slot = document.createElement('slot')
+    
+      const stylesheetLink = document.createElement('link')
+    
+      stylesheetLink.href = '{{ 'custom.css' | asset_url }}'
+    
+      stylesheetLink.rel = 'stylesheet'
+    
+      shadow.appendChild(stylesheetLink)
+      container.appendChild(slot)
+      shadow.appendChild(container)
+    
+      this.observer = new IntersectionObserver(this.handleIntersection, {
+        threshold: 0.1,
+      })
+      this.observer.observe(this)
+    }
+    
+    handleIntersection(entries) {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          this.shadowRoot
+            .querySelector('.intersection')
+            .classList.add('intersection--visible')
+        } else {
+          this.shadowRoot
+            .querySelector('.intersection')
+            .classList.remove('intersection--visible')
+        }
+      })
+    }
+    
+    disconnectedCallback() {
+      this.observer.disconnect()
+    }
+    }
+    
+    class CustomSection extends HTMLElement {
+    constructor() {
+      super()
+      this.button = null
+      this.activeElements = null
+      this.hiddenText = null
+      this.handleClick = this.handleClick.bind(this)
+      this.handleAnimationEnd = this.handleAnimationEnd.bind(this)
+      this.handleSlotChange = this.handleSlotChange.bind(this)
+    }
+    
+    handleClick() {
+      this.button.classList.add('hide')
+      this.activeElements.forEach((element) => {
+        element.classList.add('hide')
+      })
+    }
+    
+    handleAnimationEnd() {
+      this.hiddenText.classList.remove('hidden')
+      this.hiddenText.classList.add('reveal')
+    }
+    
+    handleSlotChange() {
+      const button = this.querySelector('.custom-section__button')
+      if (!button) {
+        throw new Error('Button not found')
+      }
+    
+      this.button = button
+      const activeElements = this.querySelectorAll('.active')
+      this.activeElements = activeElements
+      const hiddenText = this.querySelector('.custom-section__text.hidden')
+      this.hiddenText = hiddenText
+    
+      this.button.addEventListener('click', this.handleClick)
+    
+      this.button.addEventListener('animationend', this.handleAnimationEnd)
+    }
+    
+    connectedCallback() {
+      const shadow = this.attachShadow({ mode: 'open' })
+    
+      const container = document.createElement('div')
+    
+      container.classList.add('custom-section')
+    
+      const slot = document.createElement('slot')
+    
+      const stylesheetLink = document.createElement('link')
+    
+      stylesheetLink.href = '{{ 'custom.css' | asset_url }}';
+      //link here from the assets folder I'm using shopify so I have to use the assets folder
+    
+      stylesheetLink.rel = 'stylesheet'
+    
+      shadow.appendChild(stylesheetLink)
+      container.appendChild(slot)
+      shadow.appendChild(container)
+    
+      shadow.addEventListener('slotchange', this.handleSlotChange)
+    }
+    
+    disconnectedCallback() {
+      this.button.removeEventListener('click', this.handleClick)
+      this.button.removeEventListener('animationend', this.handleAnimationEnd)
+      this.shadowRoot.removeEventListener('slotchange', this.handleSlotChange)
+    }
+    }
+    
+    customElements.define('show-on-scroll', ShowOnScroll)
+    customElements.define('custom-section', CustomSection)
+</script>
+
+{% schema %}
+  {
+    "name": "Custom section",
+    "settings": [
+      {
+        "type": "text",
+        "id": "title",
+        "label": "Title"
+      },
+      {
+        "type": "textarea",
+        "id": "visibleText",
+        "label": "Visible text"
+      },
+      {
+        "type": "textarea",
+        "id": "hiddenText",
+        "label": "Hidden text"
+      },
+      {
+        "type": "image_picker",
+        "id": "imageL",
+        "label": "Large image"
+      }, {
+        "type": "image_picker",
+        "id": "imageS",
+        "label": "Small image"
+      }
+    ],
+    "presets": [
+      {
+        "name": "Custom section"
+      }
+    ]
+  }
+{% endschema %}
